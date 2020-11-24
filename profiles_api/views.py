@@ -5,6 +5,8 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 
+
+
 from .models import UserProfile, ProfileFeedItem
 from .permissions import UpdateOwnProfile, UpdateOwnStatus
 from .serializers import UserProfileSerializer, ProfileFeedItemSerializer
@@ -14,20 +16,18 @@ class UserProfileViewSet(ModelViewSet):
     """Handle creating and updating profiles"""
     serializer_class = UserProfileSerializer
     queryset = UserProfile.objects.all()
-    authentication_classes = (TokenAuthentication,)
     permission_classes = (UpdateOwnProfile,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name', 'email',)
 
 
-class UserLoginApiView(ObtainAuthToken):
-    """Handle creating user auth tokens"""
-    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+# class UserLoginApiView(ObtainAuthToken):
+#     """Handle creating user auth tokens"""
+#     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
 
 
 class UserProfileFeedViewSet(ModelViewSet):
     """Handles creating, reading and updating profile feed items"""
-    authentication_classes = (TokenAuthentication,)
     serializer_class = ProfileFeedItemSerializer
     queryset = ProfileFeedItem.objects.all()
     permission_classes = (UpdateOwnStatus, IsAuthenticated)
