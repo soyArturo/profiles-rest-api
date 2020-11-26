@@ -1,37 +1,33 @@
-from rest_framework import filters
-from rest_framework.settings import api_settings
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
+from django.http import HttpResponseRedirect
+from django.contrib.auth.models import User
+from rest_framework import permissions, status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .serializers import UserSerializer, UserSerializerWithToken
 
 
+@api_view(['GET'])
+def current_user(request):
+    """
+    Determine the current user by their token, and return their data
+    """
 
-from .models import UserProfile, ProfileFeedItem
-from .permissions import UpdateOwnProfile, UpdateOwnStatus
-from .serializers import UserProfileSerializer, ProfileFeedItemSerializer
-
-
-class UserProfileViewSet(ModelViewSet):
-    """Handle creating and updating profiles"""
-    serializer_class = UserProfileSerializer
-    queryset = UserProfile.objects.all()
-    permission_classes = (UpdateOwnProfile,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name', 'email',)
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
 
 
-# class UserLoginApiView(ObtainAuthToken):
-#     """Handle creating user auth tokens"""
-#     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+class UserList(APIView):
+    """
+    Create a new user. It's called 'UserList' because normally we'd have a get
+    method here too, for retrieving a list of all User objects.
+    """
 
+    permission_classes = (permissions.AllowAny,)
 
-class UserProfileFeedViewSet(ModelViewSet):
-    """Handles creating, reading and updating profile feed items"""
-    serializer_class = ProfileFeedItemSerializer
-    queryset = ProfileFeedItem.objects.all()
-    permission_classes = (UpdateOwnStatus, IsAuthenticated)
-
-    def perform_create(self, serializer):
-        """Sets the user profile to the logged in user"""
-        serializer.save(user_profile=self.request.user)
+    def post(self, request, format=None):
+        serializer = UserSerializerWithToken(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

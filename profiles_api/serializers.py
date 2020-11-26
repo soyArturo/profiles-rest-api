@@ -1,44 +1,36 @@
 from rest_framework import serializers
+from rest_framework_jwt.settings import api_settings
+from django.contrib.auth.models import User
 
-from profiles_api import models
 
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializes a user profile object"""
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = models.UserProfile
-        fields = ('id', 'email', 'name', 'password')
-        extra_kwargs = {
-            'password': {
-                'write_only': True,
-                'style': {'input_type': 'password'}
-            }
-        }
+        model = User
+        fields = ('username',)
+
+
+class UserSerializerWithToken(serializers.ModelSerializer):
+
+    token = serializers.SerializerMethodField()
+    password = serializers.CharField(write_only=True)
+
+    def get_token(self, obj):
+        jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
+        jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
+
+        payload = jwt_payload_handler(obj)
+        token = jwt_encode_handler(payload)
+        return token
 
     def create(self, validated_data):
-        """Create and return a new user"""
-        user = models.UserProfile.objects.create_user(
-            email=validated_data['email'],
-            name=validated_data['name'],
-            password=validated_data['password']
-        )
-
-        return user
-
-    def update(self, instance, validated_data):
-        """Handle updating user account"""
-        if 'password' in validated_data:
-            password = validated_data.pop('password')
+        password = validated_data.pop('password', None)
+        instance = self.Meta.model(**validated_data)
+        if password is not None:
             instance.set_password(password)
-
-        return super().update(instance, validated_data)
-
-
-class ProfileFeedItemSerializer(serializers.ModelSerializer):
-    """Serializes profile feed items"""
+        instance.save()
+        return instance
 
     class Meta:
-        model = models.ProfileFeedItem
-        fields = ('id', 'user_profile', 'status_text', 'created_on')
-        extra_kwargs = {'user_profile': {'read_only': True}}
+        model = User
+        fields = ('token', 'username', 'password')

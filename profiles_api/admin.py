@@ -1,6 +1,9 @@
 from django.contrib import admin
+from .models import CustomUser
 
-from profiles_api import models
 
-admin.site.register(models.UserProfile)
-admin.site.register(models.ProfileFeedItem)
+class CustomUserAdmin(admin.ModelAdmin):
+    model = CustomUser
+
+
+admin.site.register(CustomUser, CustomUserAdmin)
